@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS, cross_origin
 from bs4 import BeautifulSoup as bs
 import csv, os, time, re
-import undetected_chromedriver as uc
+# import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -15,16 +15,25 @@ os.makedirs(CSV_FOLDER, exist_ok=True)
 
 
 def get_driver():
-    options = uc.ChromeOptions()
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+    
+    options = Options()
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1366,768")
     options.add_argument("--disable-notifications")
-    driver = uc.Chrome(options=options, headless=False, use_subprocess=True, version_main=144)
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    
+    # Use system chromium
+    options.binary_location = "/usr/bin/chromium-browser"
+    
+    driver = webdriver.Chrome(options=options)
     driver.set_page_load_timeout(60)
     return driver
-
 
 def safe_get(driver, url, timeout=30):
     try:
@@ -309,4 +318,6 @@ def download(filename):
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8000, debug=True, use_reloader=False)
+    import os
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port, debug=False)
