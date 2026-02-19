@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flipkart Review Scraper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --bg: #0a0a0f; --surface: #111118; --card: #16161f;
+    --border: #1e1e2e; --border-hi: #2a2a3e;
+    --text: #e8e8f0; --muted: #6b6b80;
+    --accent: #4f8ef7; --accent-2: #7c5cfa;
+    --green: #22c55e; --glow: rgba(79,142,247,0.15);
+    --row-hover: #1a1a28;
+}
+body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ---- HEADER ---- */
+header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.92); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 60px;
+    display: flex; align-items: center; gap: 24px;
+}
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; white-space: nowrap; }
+.logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.logo-sub { color: var(--muted); font-weight: 400; font-size: 11px; display: block; }
+.header-search { flex: 1; max-width: 460px; display: flex; background: var(--surface); border: 1px solid var(--border-hi); border-radius: 8px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+.header-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.header-search input { flex: 1; background: transparent; border: none; outline: none; padding: 10px 14px; font-size: 14px; color: var(--text); font-family: 'Space Grotesk', sans-serif; }
+.header-search input::placeholder { color: var(--muted); }
+.header-search button { background: var(--accent); border: none; padding: 0 16px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: background 0.2s; }
+.header-search button:hover { background: #3d7ae8; }
+
+/* ---- HERO ---- */
+.hero { position: relative; padding: 60px 32px 56px; text-align: center; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(79,142,247,0.1) 0%, transparent 70%); }
+.hero-grid { position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 48px 48px; opacity: 0.2; mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 100%); }
+.hero-content { position: relative; z-index: 1; }
+.hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.25); border-radius: 20px; padding: 5px 14px; font-size: 12px; color: var(--accent); margin-bottom: 18px; font-family: 'JetBrains Mono', monospace; }
+.badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+.hero h1 { font-size: 44px; font-weight: 700; letter-spacing: -2px; line-height: 1.05; margin-bottom: 12px; }
+.line1 { color: var(--text); }
+.line2 { background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero-sub { color: var(--muted); font-size: 15px; margin-bottom: 36px; max-width: 460px; margin-inline: auto; line-height: 1.6; }
+
+/* ---- SEARCH BOX ---- */
+.search-box { max-width: 600px; margin: 0 auto; background: var(--card); border: 1px solid var(--border-hi); border-radius: 16px; padding: 24px; box-shadow: 0 8px 48px rgba(0,0,0,0.5); }
+.search-row { display: flex; background: var(--surface); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+.search-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.search-row input { flex: 1; background: transparent; border: none; outline: none; padding: 14px 16px; font-size: 15px; color: var(--text); font-family: 'Space Grotesk', sans-serif; }
+.search-row input::placeholder { color: var(--muted); }
+.scrape-btn { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; padding: 14px 22px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: opacity 0.2s; white-space: nowrap; }
+.scrape-btn:hover { opacity: 0.88; }
+.scrape-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.chip { background: transparent; border: 1px solid var(--border-hi); color: var(--muted); padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: all 0.2s; }
+.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--glow); }
+
+/* ---- MAIN ---- */
+.main { max-width: 1200px; margin: 0 auto; padding: 36px 32px 60px; }
+
+/* ---- STATUS ---- */
+.status { display: none; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; padding: 14px 18px; margin-bottom: 24px; }
+.status.show { display: flex; }
+.status.error { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.06); }
+.status.ok { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.06); }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border-hi); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-msg { font-size: 14px; font-weight: 500; }
+.mono { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+
+/* ---- RESULTS BAR ---- */
+.results-bar { display: none; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 16px; flex-wrap: wrap; }
+.results-bar.show { display: flex; }
+.results-info { display: flex; align-items: center; gap: 12px; }
+.results-label { font-size: 13px; font-weight: 500; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.results-label b { color: var(--accent); }
+.search-input-wrap { display: flex; background: var(--surface); border: 1px solid var(--border-hi); border-radius: 8px; overflow: hidden; }
+.search-input-wrap input { background: transparent; border: none; outline: none; padding: 7px 12px; font-size: 13px; color: var(--text); font-family: 'Space Grotesk', sans-serif; width: 200px; }
+.search-input-wrap input::placeholder { color: var(--muted); }
+.dl-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; text-decoration: none; transition: all 0.2s; }
+.dl-btn:hover { background: rgba(34,197,94,0.2); border-color: var(--green); }
+
+/* ---- TABLE WRAPPER ---- */
+.table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    animation: rise 0.3s ease;
+}
+@keyframes rise { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* ---- TABLE ---- */
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--surface); border-bottom: 1px solid var(--border-hi); }
+thead th {
+    padding: 14px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+}
+thead th:first-child { width: 48px; text-align: center; }
+thead th:nth-child(2) { width: 180px; }
+thead th:nth-child(3) { width: 100%; }
+
+tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    animation: rowIn 0.35s ease both;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--row-hover); }
+@keyframes rowIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+
+tbody td {
+    padding: 16px 20px;
+    font-size: 14px;
+    vertical-align: top;
+}
+
+/* Index column */
+.td-num {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    padding-top: 18px;
+}
+
+/* Name column */
+.td-name { white-space: nowrap; }
+.name-wrap { display: flex; align-items: center; gap: 10px; }
+.avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: white;
+}
+.name-text { font-weight: 600; font-size: 14px; }
+.verified { font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; display: block; }
+
+/* Comment column */
+.td-comment { color: #c0c0d0; line-height: 1.65; }
+
+/* Empty state */
+.empty { text-align: center; padding: 90px 32px; color: var(--muted); }
+.empty-icon { font-size: 48px; margin-bottom: 14px; opacity: 0.3; }
+.empty h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+
+footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 0; font-family: 'JetBrains Mono', monospace; }
+
+@media(max-width:640px){
+    .hero h1{font-size:30px} .hero{padding:44px 16px 48px}
+    .search-box{padding:16px; border-radius:12px}
+    header{padding:0 16px} .main{padding:24px 16px 48px}
+    thead th:nth-child(2){width:130px}
+    .name-text{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+    <div class="logo">
+        <div class="logo-icon">&#x1F50D;</div>
+        <div>ReviewScraper<span class="logo-sub">Flipkart Edition</span></div>
+    </div>
+    <div class="header-search">
+        <input id="hSearch" type="text" placeholder="Search a product..." />
+        <button onclick="go()">Search</button>
+    </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+        <div class="hero-badge"><div class="badge-dot"></div>Selenium &bull; BeautifulSoup &bull; Flask</div>
+        <h1><div class="line1">Scrape Flipkart</div><div class="line2">Customer Reviews</div></h1>
+        <p class="hero-sub">Enter any product name. Reviews are scraped, displayed in a table, and saved as CSV.</p>
+        <div class="search-box">
+            <div class="search-row">
+                <input id="mSearch" type="text" placeholder="e.g. OnePlus 12, Samsung S24, boAt earbuds..." />
+                <button class="scrape-btn" id="scrapeBtn" onclick="go()">&#9654; Scrape Reviews</button>
+            </div>
+            <div class="chips">
+                <button class="chip" onclick="fill('OnePlus 12')">OnePlus 12</button>
+                <button class="chip" onclick="fill('Samsung S24')">Samsung S24</button>
+                <button class="chip" onclick="fill('iPhone 15 Plus')">iPhone 15 Plus</button>
+                <button class="chip" onclick="fill('boAt earbuds')">boAt Earbuds</button>
+                <button class="chip" onclick="fill('Redmi Note 13')">Redmi Note 13</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+    <!-- STATUS -->
+    <div class="status" id="status">
+        <div class="spinner" id="spinner"></div>
+        <div class="status-msg" id="statusMsg">Loading...</div>
+    </div>
+
+    <!-- RESULTS BAR -->
+    <div class="results-bar" id="resultsBar">
+        <div class="results-info">
+            <div class="results-label">Showing <b id="rCount">0</b> reviews</div>
+            <div class="search-input-wrap">
+                <input id="filterInput" type="text" placeholder="&#128269; Filter reviews..." oninput="filterTable()" />
+            </div>
+        </div>
+        <a class="dl-btn" id="dlBtn" href="#" download>&#11015; Download CSV</a>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap" id="tableWrap" style="display:none">
+        <table id="reviewTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Customer Name</th>
+                    <th>Review Comment</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div class="empty" id="empty">
+        <div class="empty-icon">&#128269;</div>
+        <h3>Nothing here yet</h3>
+        <p>Search for a Flipkart product to scrape customer reviews</p>
+    </div>
+
+</div>
+
+<footer>flipkart-review-scraper &mdash; flask + selenium + beautifulsoup</footer>
+
+<script>
+const mSearch = document.getElementById('mSearch');
+const hSearch = document.getElementById('hSearch');
+const btn     = document.getElementById('scrapeBtn');
+
+mSearch.oninput = () => hSearch.value = mSearch.value;
+hSearch.oninput = () => mSearch.value = hSearch.value;
+[mSearch, hSearch].forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') go(); }));
+
+function fill(t) { mSearch.value = t; hSearch.value = t; }
+function go() {
+    const q = mSearch.value.trim() || hSearch.value.trim();
+    if (!q) { mSearch.focus(); return; }
+    scrape(q);
+}
+
+function setStatus(text, type='load') {
+    const s = document.getElementById('status');
+    s.className = 'status show' + (type==='error' ? ' error' : type==='ok' ? ' ok' : '');
+    document.getElementById('statusMsg').innerHTML = text;
+    document.getElementById('spinner').style.display = type==='load' ? 'block' : 'none';
+}
+
+function esc(s) {
+    return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function initial(name) { return (name || 'A')[0].toUpperCase(); }
+
+// All reviews stored for filtering
+let allReviews = [];
+
+function renderTable(reviews, filename) {
+    allReviews = reviews;
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    reviews.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.style.animationDelay = Math.min(i * 0.03, 0.8) + 's';
+        tr.setAttribute('data-name', (r.customer_name||'').toLowerCase());
+        tr.setAttribute('data-comment', (r.comment||'').toLowerCase());
+        tr.innerHTML =
+            '<td class="td-num">' + (i + 1) + '</td>' +
+            '<td class="td-name">' +
+                '<div class="name-wrap">' +
+                    '<div class="avatar">' + esc(initial(r.customer_name)) + '</div>' +
+                    '<div>' +
+                        '<div class="name-text">' + esc(r.customer_name || 'Anonymous') + '</div>' +
+                        '<span class="verified">&#10003; Verified</span>' +
+                    '</div>' +
+                '</div>' +
+            '</td>' +
+            '<td class="td-comment">' + esc(r.comment || 'No comment available.') + '</td>';
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById('rCount').textContent = reviews.length;
+    document.getElementById('dlBtn').href = '/download/' + filename;
+    document.getElementById('resultsBar').className = 'results-bar show';
+    document.getElementById('tableWrap').style.display = 'block';
+    document.getElementById('empty').style.display = 'none';
+    document.getElementById('filterInput').value = '';
+}
+
+function filterTable() {
+    const q = document.getElementById('filterInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#tableBody tr');
+    let visible = 0;
+    rows.forEach(row => {
+        const name    = row.getAttribute('data-name') || '';
+        const comment = row.getAttribute('data-comment') || '';
+        const show    = !q || name.includes(q) || comment.includes(q);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('rCount').textContent = visible;
+}
+
+async function scrape(query) {
+    btn.disabled = true;
+    btn.textContent = 'Scraping...';
+    document.getElementById('tableBody').innerHTML = '';
+    document.getElementById('tableWrap').style.display = 'none';
+    document.getElementById('resultsBar').className = 'results-bar';
+    document.getElementById('empty').style.display = 'none';
+    setStatus('Opening Chrome and searching Flipkart for <span class="mono">' + esc(query) + '</span>...');
+
+    try {
+        const res  = await fetch('/scrape', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ query })
+        });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+            setStatus('&#10007; ' + (data.error || 'Something went wrong'), 'error');
+            document.getElementById('empty').style.display = 'block';
+        } else {
+            setStatus(
+                '&#10003; Scraped <b>' + data.count + '</b> reviews &mdash; saved as <span class="mono">' + data.filename + '</span>',
+                'ok'
+            );
+            setTimeout(() => { document.getElementById('status').className = 'status'; }, 5000);
+            renderTable(data.reviews, data.filename);
+        }
+    } catch(e) {
+        setStatus('&#10007; Network error — is Flask running on port 8000?', 'error');
+        document.getElementById('empty').style.display = 'block';
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '&#9654; Scrape Reviews';
+}
+</script>
+</body>
+</html>
