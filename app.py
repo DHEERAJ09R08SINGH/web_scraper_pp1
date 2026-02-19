@@ -18,6 +18,7 @@ def get_driver():
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.chrome.options import Options
+    import os
     
     options = Options()
     options.add_argument("--headless=new")
@@ -26,15 +27,33 @@ def get_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1366,768")
     options.add_argument("--disable-notifications")
-    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-dev-tools")
+    options.add_argument("--disable-crash-reporter")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-in-process-stack-traces")
+    options.add_argument("--disable-logging")
+    options.add_argument("--log-level=3")
     
-    # Use system chromium
-    options.binary_location = "/usr/bin/chromium-browser"
+    # Set Chrome binary location
+    chrome_bin = os.environ.get('CHROME_BIN', '/usr/bin/chromium-browser')
+    options.binary_location = chrome_bin
     
-    driver = webdriver.Chrome(options=options)
-    driver.set_page_load_timeout(60)
-    return driver
+    # Set ChromeDriver path
+    chromedriver_path = os.environ.get('CHROMEDRIVER_PATH', '/usr/local/bin/chromedriver')
+    
+    try:
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(60)
+        return driver
+    except Exception as e:
+        print(f"Error creating driver: {e}")
+        # Fallback: try without specifying path (let selenium find it)
+        driver = webdriver.Chrome(options=options)
+        driver.set_page_load_timeout(60)
+        return driver
 
+        
 def safe_get(driver, url, timeout=30):
     try:
         driver.get(url)
