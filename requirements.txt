@@ -11,4 +11,5 @@ requests>=2.31.0
 selenium>=4.0.0
 selenium-stealth>=1.0.6
 webdriver-manager>=4.0.0
+undetected-chromedriver>=3.5.5
 gunicorn>=21.2.0
